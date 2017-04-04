@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello World</title>
+
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="App.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> -->
+    <script src="https://unpkg.com/react@15.4.2/dist/react.min.js"></script>
+    <script src="https://unpkg.com/react-dom@15.4.2/dist/react-dom.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+
+
+  </head>
+  <body>
+
+    <div id="header"></div>
+    <!--<div id="nav"></div>
+    <div id="root"></div> -->
+    <script type="text/babel">
+    class Header extends React.Component {
+      constructor (){
+        super();
+        this.state = {
+          showNav: false,
+          showDetails: false,
+          showTrucks: false,
+          fetchedData: [],
+          filteredData: [],
+          truckDetails: [],
+          scrolly: 0,
+        }
+      }
+
+      componentWillMount(){
+        $.getJSON("https://raw.githubusercontent.com/nos-joel/fow/master/wheelers.json",
+          (fetched_data) => {
+            this.setState({ fetchedData: fetched_data.wheelers,
+                            filteredData: fetched_data.wheelers
+            });
+          }
+        );
+      }
+      componentDidMount(){
+        this.setState({
+          showTrucks: true,
+        });
+
+      }
+
+      getScrollPos(ypos){
+        console.log(`pos: ${ypos}`);
+        this.setState({
+          scrolly: ypos,
+        });
+      }
+      showNav() {
+        this.setState({
+          showNav: !this.state.showNav,
+        });
+      }
+      showTruck(truckDetails) {
+        this.setState({
+          truckDetails: truckDetails,//detailsTruckee
+          showTrucks: !this.state.showTrucks,
+          showDetails: !this.state.showDetails,
+        });
+      }
+      getByLocation (items, wanted){
+        return items.filter((el) =>
+          el.compass === wanted
+        )
+      }
+      getLocation(loc){
+        let fetched = this.getByLocation(this.state.fetchedData, loc)
+          this.setState({
+            filteredData: fetched,
+          });
+      }
+      render() {
+        let nav;// = <Nav />;
+        let details;// = <Details />;
+        let listings;// = <Container />;
+
+        if (this.state.showNav){
+          nav = <Nav getLocation={this.getLocation.bind(this)}  showTruck={this.showTruck.bind(this)} />;
+        }
+        if (this.state.showTrucks){
+          listings = <ListingsContainer getScrollPos={this.getScrollPos.bind(this)} scrolly={this.state.scrolly}
+                      truckdata={this.state.filteredData} showTruck={this.showTruck.bind(this)}/>;
+        }
+        if (this.state.showDetails){
+          details = <Details details={this.state.truckDetails} showTruck={this.showTruck.bind(this)}/>;
+        }
+
+        return (
+          <div className="container">
+            <div className="row">
+              <div className="wrapper">
+                <h2 className="header">Food on Wheels PR </h2>
+                <div className="menuwrap" onClick={() => this.showNav()}>
+                  <div className="menu-icon"></div>
+                  <div className="menu-icon"></div>
+                  <div className="menu-icon"></div>
+                </div>
+              </div>
+
+              {nav}
+              {listings}
+              {details}
+            </div>
+          </div>
+        );
+      }
+    }
+
+    class Nav extends React.Component {
+      _getLocation(loc){
+        this.props.getLocation(loc);
+      }
+      render() {
+        return (
+          <div className="nav-wrapper">
+            <button onClick={ () => this._getLocation("norte") } className="south-north nav-btn-style">North</button>
+              <div className="inline-wrapper">
+                <button onClick={ () => this._getLocation("oeste") } className="inline nav-btn-style">Oeste</button>
+                <button onClick={ () => this._getLocation("metro") } className="inline nav-btn-style">Metro</button>
+                <button onClick={ () => this._getLocation("este") } className="inline nav-btn-style">Este</button>
+              </div>
+            <button onClick={ () => this._getLocation("sur") } className="south-north nav-btn-style">Sur</button>
+          </div>
+        );
+      }
+    }
+    class Details extends React.Component {
+      goBack(){
+        this.props.showTruck();//ec1c6ba6a96c
+      }
+      render() {
+
+        let props = this.props.details;
+
+        let menu = props.menudetallado.map((menuItem) => <li>{menuItem}</li> );
+
+        return (
+          <div>
+            <div className="patras" onClick={ () => this.goBack() }>Pa Atras &#8630;</div>
+            <div className="imgWrapper"><img className="imageDetailwrap" alt="asd" src={props.imgurl}></img></div>
+
+              <h1 className="detailName">{props.name}</h1>
+              <div className="menucenter">
+                <h2>Menu</h2>
+                <ul>
+                  {menu}
+                </ul>
+              </div>
+
+          </div>
+        );
+      }
+    }
+    class ListingsContainer extends React.Component {
+      show(){
+        this.props.showTruck();
+      }
+      componentDidMount(){
+        window.scrollBy(0, this.props.scrolly);
+      }
+      render() {
+        let dataTomap = this.props.truckdata;
+        let entries = dataTomap.map((el) =>
+          <Card key={el.key} url={el.imgurl} menu={el.menu} location={el.location}
+            name={el.name} status={el.status} showTruck={this.props.showTruck.bind(this,el)}
+            getScrollPos={this.props.getScrollPos.bind(this)}
+          />
+        );
+        return (
+          <div className="entries">
+            {entries}
+          </div>
+        );
+      }
+    }
+
+    class Card extends React.Component {
+      showTruck(){
+
+        //console.log(window.pageYOffset);
+        this.props.getScrollPos(window.pageYOffset);
+        this.props.showTruck();
+
+      }
+      render () {
+        return (
+          <div className="col-md-6">
+
+              <div className="content">
+                <p className="fname">{this.props.name}</p>
+              </div>
+
+              <ul className="menu">
+                <li className="pinline"><u>{this.props.menu[0]}</u></li>
+                <li className="pinline"><u>{this.props.menu[1]}</u></li>
+                <li className="pinline"><u>{this.props.menu[2]}</u></li>
+              </ul>
+
+            <div className="status">
+              <p>{this.props.status}</p>
+            </div>
+            <button className="detailsSection" onClick={ () => this.showTruck()}>Ver detalles</button>
+            <div className="ci-footer">Ahora en {this.props.location}</div>
+            <div className="imgWrapper"><img className="image" alt="asd" src={this.props.url}></img></div>
+          </div>
+        );
+      }
+    }
+      ReactDOM.render(
+        <Header />,
+        document.getElementById('header')
+      );
+
+    </script>
+  </body>
+</html>
